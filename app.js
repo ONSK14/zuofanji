@@ -327,3 +327,9 @@ function deleteStory(index) {
 // ================= 页面加载时自动恢复故事 =================
 
 window.onload = loadStoryFromStorage;
+
+// 页面加载时绑定关闭按钮事件
+window.onload = () => {
+  loadStoryFromStorage();
+  document.getElementById('popup-close').onclick = closePopup;
+};
