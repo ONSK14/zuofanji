@@ -2,12 +2,13 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>AI 故事创作平台</title>
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <!-- 左上角三条杠按钮 -->
+
+  <!-- 左上角菜单按钮 -->
   <button id="menu-toggle">≡</button>
 
   <!-- 侧边弹出菜单 -->
@@ -15,24 +16,32 @@
     <button onclick="startStory()">开始创作</button>
     <button onclick="openNew()">新建</button>
     <button onclick="openView()">查看</button>
+    <button onclick="openStoryList()">切换故事</button>
+    <button onclick="saveCurrentStoryAsNew()">保存为新故事</button>
     <button onclick="downloadStory()">下载故事</button>
     <button onclick="clearStory()">清除当前故事内容</button>
     <button onclick="closeMenu()">关闭菜单</button>
   </div>
 
-  <!-- 主界面 -->
+  <!-- 主容器区域 -->
   <div class="container">
-    <!-- API 设置部分 -->
+
+    <!-- API 设置 -->
     <div class="api-settings">
       <input id="api-key" placeholder="自定义 API Key（可选）" />
       <input id="api-url" placeholder="自定义 API 地址（可选）" />
       <input id="model-name" placeholder="自定义模型名称（可选）" />
     </div>
 
-    <!-- 当前故事显示区域 -->
+    <!-- 故事输出区 -->
     <div id="story-output"></div>
 
-    <!-- 生成控制区域 -->
+    <!-- 正在生成提示 -->
+    <div id="loading" class="hidden">
+      正在生成故事，请稍等...
+    </div>
+
+    <!-- 用户输入 + 控制 -->
     <div class="controls">
       <textarea id="user-prompt" placeholder="请输入情节发展方向..."></textarea>
       <select id="length-selector">
@@ -52,12 +61,13 @@
     </div>
   </div>
 
-  <!-- 弹出框区域（开始创作、新建、查看等） -->
-<!-- 弹出框区域（包括关闭按钮） -->
-<div id="popup" class="hidden">
-  <button id="popup-close" onclick="closePopup()">关闭</button>
-</div>
+  <!-- 弹出框区域（用于各种弹窗） -->
+  <div id="popup" class="hidden">
+    <button id="popup-close" onclick="closePopup()">关闭</button>
+    <div id="popup-content"></div>
+  </div>
 
-<script src="app.js"></script>
+  <!-- JS 功能逻辑 -->
+  <script src="app.js"></script>
 </body>
 </html>
