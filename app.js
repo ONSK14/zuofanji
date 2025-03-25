@@ -13,7 +13,7 @@ const defaultModel = 'deepseek-chat';
 
 // ================= 工具函数 =================
 
-// 获取当前 API 设置（用户填写优先，否则使用默认）
+// 获取 API 设置（如果用户填写了就用用户填写的，否则用默认）
 function getAPISettings() {
   const apiKey = document.getElementById('api-key').value || defaultAPIKey;
   const apiUrl = document.getElementById('api-url').value || defaultAPIUrl;
@@ -21,7 +21,7 @@ function getAPISettings() {
   return { apiKey, apiUrl, modelName };
 }
 
-// 根据当前选中的世界观和角色生成系统 prompt
+// 根据当前世界观和角色，生成系统提示内容
 function updateSystemPrompt() {
   let prompt = '';
   if (currentWorld) {
@@ -33,30 +33,32 @@ function updateSystemPrompt() {
   systemPrompt = prompt;
 }
 
-// 控制故事内存数量，防止 token 超限
+// 限制故事与大纲的历史数量，防止 token 超限
 function manageMemory() {
   if (storyMemory.length > 2) storyMemory.shift();
   if (outlineMemory.length > 50) outlineMemory.shift();
 }
 
-// ================= 菜单控制 =================
+// ================= 菜单与弹窗控制 =================
 
+// 左上角菜单按钮点击，展开或关闭侧边栏
 document.getElementById('menu-toggle').onclick = () => {
   document.getElementById('side-menu').classList.toggle('hidden');
 };
 
+// 关闭菜单
 function closeMenu() {
   document.getElementById('side-menu').classList.add('hidden');
 }
 
-// ================= 弹出框控制 =================
-
+// 关闭弹出框
 function closePopup() {
   document.getElementById('popup').classList.add('hidden');
 }
 
 // ================= 新建角色/世界观 =================
 
+// 点击“新建”按钮后，弹出输入框
 function openNew() {
   const popup = document.getElementById('popup');
   const popupContent = document.getElementById('popup-content');
@@ -79,7 +81,7 @@ function openNew() {
   popup.classList.remove('hidden');
 }
 
-// 保存世界观到 localStorage
+// 保存世界观信息
 function saveNewWorld() {
   const name = document.getElementById('new-world-name').value.trim();
   const desc = document.getElementById('new-world-desc').value.trim();
@@ -93,7 +95,7 @@ function saveNewWorld() {
   alert('世界观已保存');
 }
 
-// 保存角色到 localStorage
+// 保存角色信息
 function saveNewCharacter() {
   const name = document.getElementById('char-name').value.trim();
   const gender = document.getElementById('char-gender').value.trim();
@@ -228,46 +230,197 @@ function confirmStart() {
   storyMemory = [];
   outlineMemory = [];
   storyChapters = [];
+
   document.getElementById('story-output').innerHTML = '';
   document.getElementById('popup').classList.add('hidden');
   alert('准备好了，可以开始创作！');
 }
 
-// ================= 自动保存与加载当前故事 =================
+// ================= 生成故事 =================
 
-function saveStoryToStorage() {
-  const data = {
-    storyMemory,
-    outlineMemory,
-    storyChapters,
-    currentWorld,
-    currentCharacters,
-  };
-  localStorage.setItem('currentStory', JSON.stringify(data));
+async function generateStory() {
+  const prompt = document.getElementById('user-prompt').value.trim();
+  if (!prompt) {
+    alert("请输入情节提示后再生成故事！");
+    return;
+  }
+  const length = document.getElementById('length-selector').value;
+  const { apiKey, apiUrl, modelName } = getAPISettings();
+
+  document.getElementById('loading').classList.remove('hidden');
+
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    ...storyMemory,
+    { role: 'user', content: `${prompt}（请生成一章故事，长度约${length}字，并在开头提供50-500字大纲）` }
+  ];
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages,
+        temperature: 0.9
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || '生成失败';
+
+    // 分离大纲和正文
+    let outline = '';
+    let content = reply;
+    const outlineMatch = reply.match(/^(大纲[:：]?\s*\n?)([\s\S]+?)\n{2,}/);
+    if (outlineMatch) {
+      outline = outlineMatch[2].trim();
+      content = reply.replace(outlineMatch[0], '').trim();
+    }
+
+    outlineMemory.push(outline);
+    storyMemory.push({ role: 'assistant', content });
+    storyChapters.push({ outline, content });
+    manageMemory();
+
+    const chapterNum = storyChapters.length;
+    const storyDiv = document.getElementById('story-output');
+    storyDiv.innerHTML += `
+      <div id="chapter-${chapterNum}">
+        <h3>第${chapterNum}章</h3>
+        <p>${content.replace(/\n/g, '<br/>')}</p>
+        <button onclick="regenerateChapter(${chapterNum - 1}, false)">按原提示重新生成</button>
+        <button onclick="regenerateChapter(${chapterNum - 1}, true)">输入新提示重新生成</button>
+      </div>`;
+
+    document.getElementById('user-prompt').value = '';
+    saveStoryToStorage();
+  } catch (err) {
+    alert("生成失败，请检查 API 设置是否正确。");
+    console.error(err);
+  } finally {
+    document.getElementById('loading').classList.add('hidden');
+  }
 }
 
-function loadStoryFromStorage() {
-  const data = JSON.parse(localStorage.getItem('currentStory') || 'null');
-  if (!data) return;
+// ================= 重新生成章节 =================
 
-  storyMemory = data.storyMemory || [];
-  outlineMemory = data.outlineMemory || [];
-  storyChapters = data.storyChapters || [];
-  currentWorld = data.currentWorld || null;
-  currentCharacters = data.currentCharacters || [];
-  updateSystemPrompt();
+async function regenerateChapter(index, askNewPrompt = false) {
+  const oldPrompt = document.getElementById('user-prompt').value.trim() || '请延续上一章生成新一章故事';
+  const userPrompt = askNewPrompt ? prompt('请输入新的提示：', oldPrompt) : oldPrompt;
+  if (!userPrompt) return;
 
-  const storyDiv = document.getElementById('story-output');
-  storyDiv.innerHTML = '';
+  const { apiKey, apiUrl, modelName } = getAPISettings();
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user', content: `${userPrompt}（请生成一章故事，长度约2000字，并在开头提供50-500字大纲）` }
+  ];
+
+  document.getElementById('loading').classList.remove('hidden');
+
+  try {
+    const res = await fetch(apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: modelName,
+        messages,
+        temperature: 0.9
+      })
+    });
+
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || '生成失败';
+
+    let outline = '';
+    let content = reply;
+    const outlineMatch = reply.match(/^(大纲[:：]?\s*\n?)([\s\S]+?)\n{2,}/);
+    if (outlineMatch) {
+      outline = outlineMatch[2].trim();
+      content = reply.replace(outlineMatch[0], '').trim();
+    }
+
+    storyChapters[index] = { outline, content };
+    outlineMemory[index] = outline;
+    storyMemory = [{ role: 'assistant', content }];
+
+    const chapterDiv = document.getElementById(`chapter-${index + 1}`);
+    chapterDiv.innerHTML = `
+      <h3>第${index + 1}章（已重写）</h3>
+      <p>${content.replace(/\n/g, '<br/>')}</p>
+      <button onclick="regenerateChapter(${index}, false)">按原提示重新生成</button>
+      <button onclick="regenerateChapter(${index}, true)">输入新提示重新生成</button>
+    `;
+
+    saveStoryToStorage();
+  } catch (err) {
+    alert("重新生成失败！");
+    console.error(err);
+  } finally {
+    document.getElementById('loading').classList.add('hidden');
+  }
+}
+
+// ================= 查看大纲 =================
+
+function toggleOutlines() {
+  const outlineDiv = document.getElementById('outlines');
+  if (outlineDiv.classList.contains('hidden')) {
+    let html = '';
+    outlineMemory.forEach((o, i) => {
+      html += `<div><strong>第${i + 1}章大纲：</strong><p>${o}</p></div>`;
+    });
+    outlineDiv.innerHTML = html;
+    outlineDiv.classList.remove('hidden');
+  } else {
+    outlineDiv.classList.add('hidden');
+  }
+}
+
+// ================= 清除故事 =================
+
+function clearStory() {
+  if (!confirm('确定要清除当前故事内容吗？这将重置对话。')) return;
+  storyMemory = [];
+  outlineMemory = [];
+  storyChapters = [];
+  localStorage.removeItem('currentStory');
+  document.getElementById('story-output').innerHTML = '';
+  document.getElementById('outlines').innerHTML = '';
+  document.getElementById('outlines').classList.add('hidden');
+  alert('当前故事已清除');
+}
+
+// ================= 下载故事 =================
+
+function downloadStory() {
+  if (storyChapters.length === 0) {
+    alert("当前没有任何内容可下载！");
+    return;
+  }
+
+  const withOutline = confirm("是否包含大纲？点击【确定】包含，点击【取消】不包含大纲。");
+  let text = '';
   storyChapters.forEach((chapter, i) => {
-    storyDiv.innerHTML += `
-      <div id="chapter-${i + 1}">
-        <h3>第${i + 1}章</h3>
-        <p>${chapter.content.replace(/\n/g, '<br/>')}</p>
-        <button onclick="regenerateChapter(${i}, false)">按原提示重新生成</button>
-        <button onclick="regenerateChapter(${i}, true)">输入新提示重新生成</button>
-      </div>`;
+    text += `第${i + 1}章\n\n`;
+    if (withOutline) {
+      text += `大纲：\n${chapter.outline}\n\n`;
+    }
+    text += `${chapter.content}\n\n`;
   });
+
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const link = document.createElement('a');
+  const filename = prompt('请输入要保存的文件名', '我的故事') || '故事';
+  link.href = URL.createObjectURL(blob);
+  link.download = filename + '.txt';
+  link.click();
 }
 
 // ================= 多故事保存与切换 =================
@@ -324,12 +477,49 @@ function deleteStory(index) {
   openStoryList();
 }
 
-// ================= 页面加载时自动恢复故事 =================
+// ================= 自动保存与加载当前故事 =================
 
-window.onload = loadStoryFromStorage;
+function saveStoryToStorage() {
+  const data = {
+    storyMemory,
+    outlineMemory,
+    storyChapters,
+    currentWorld,
+    currentCharacters,
+  };
+  localStorage.setItem('currentStory', JSON.stringify(data));
+}
 
-// 页面加载时绑定关闭按钮事件
+function loadStoryFromStorage() {
+  const data = JSON.parse(localStorage.getItem('currentStory') || 'null');
+  if (!data) return;
+
+  storyMemory = data.storyMemory || [];
+  outlineMemory = data.outlineMemory || [];
+  storyChapters = data.storyChapters || [];
+  currentWorld = data.currentWorld || null;
+  currentCharacters = data.currentCharacters || [];
+  updateSystemPrompt();
+
+  const storyDiv = document.getElementById('story-output');
+  storyDiv.innerHTML = '';
+  storyChapters.forEach((chapter, i) => {
+    storyDiv.innerHTML += `
+      <div id="chapter-${i + 1}">
+        <h3>第${i + 1}章</h3>
+        <p>${chapter.content.replace(/\n/g, '<br/>')}</p>
+        <button onclick="regenerateChapter(${i}, false)">按原提示重新生成</button>
+        <button onclick="regenerateChapter(${i}, true)">输入新提示重新生成</button>
+      </div>`;
+  });
+}
+
+// ================= 页面加载时自动绑定 =================
+
 window.onload = () => {
   loadStoryFromStorage();
-  document.getElementById('popup-close').onclick = closePopup;
+  const closeBtn = document.getElementById('popup-close');
+  if (closeBtn) {
+    closeBtn.onclick = closePopup;
+  }
 };
