@@ -23,7 +23,7 @@ function getAPISettings() {
 function updateSystemPrompt() {
   let prompt = '';
   if (currentWorld) {
-    prompt += `【世界观】\n${currentWorld.name}\n${currentWorld.description}\n\n`;
+    prompt += `【世界观】\n${currentWorld.name || '未命名世界观'}\n${currentWorld.description}\n\n`;
   }
   currentCharacters.forEach((char, i) => {
     prompt += `【角色${i + 1}】\n姓名：${char.name}\n性别：${char.gender}\n简介：${char.description}\n\n`;
@@ -84,7 +84,7 @@ function openView() {
   html += '<h3>世界观</h3>';
   worlds.forEach((w, i) => {
     html += `
-      <div class="item-title" onclick="toggleDetails('world-${i}')">${w.name}</div>
+      <div class="item-title" onclick="toggleDetails('world-${i}')">${w.name || '未命名世界观'}</div>
       <div id="world-${i}" class="details">${w.description}<br/>
         <button onclick="deleteWorld(${i})">删除</button>
       </div>
@@ -93,7 +93,7 @@ function openView() {
   html += '<h3>角色</h3>';
   chars.forEach((c, i) => {
     html += `
-      <div class="item-title" onclick="toggleDetails('char-${i}')">${c.name}</div>
+      <div class="item-title" onclick="toggleDetails('char-${i}')">${c.name || '未命名角色'}</div>
       <div id="char-${i}" class="details">
         性别：${c.gender}<br/>简介：${c.description}<br/>
         <button onclick="deleteCharacter(${i})">删除</button>
@@ -154,4 +154,45 @@ function deleteCharacter(index) {
   openView();
 }
 
-// （后面生成章节、下载等功能与上次一致，可以接着保留）
+// ================= 开始创作 =================
+
+function startStory() {
+  const popup = document.getElementById('popup');
+  const worlds = JSON.parse(localStorage.getItem('worlds') || '[]');
+  const chars = JSON.parse(localStorage.getItem('characters') || '[]');
+
+  let html = `<button id="popup-close" onclick="closePopup()">关闭</button>`;
+  html += '<h3>选择世界观</h3><select id="world-select">';
+  worlds.forEach((w, i) => {
+    html += `<option value="${i}">${w.name || '未命名世界观'}</option>`;
+  });
+  html += '</select>';
+
+  html += '<h3>选择角色（最多3个）</h3>';
+  html += '<select multiple id="char-select" size="6">';
+  chars.forEach((c, i) => {
+    html += `<option value="${i}">${c.name || '未命名角色'}</option>`;
+  });
+  html += '</select><br/><button onclick="confirmStart()">确定</button>';
+
+  popup.innerHTML = html;
+  popup.classList.remove('hidden');
+}
+
+function confirmStart() {
+  const worldIndex = document.getElementById('world-select').value;
+  const charIndices = Array.from(document.getElementById('char-select').selectedOptions).map(o => o.value);
+  const worlds = JSON.parse(localStorage.getItem('worlds') || '[]');
+  const chars = JSON.parse(localStorage.getItem('characters') || '[]');
+
+  currentWorld = worlds[worldIndex];
+  currentCharacters = charIndices.map(i => chars[i]);
+
+  updateSystemPrompt();
+  storyMemory = [];
+  outlineMemory = [];
+  storyChapters = [];
+  document.getElementById('story-output').innerHTML = '';
+  document.getElementById('popup').classList.add('hidden');
+  alert('准备好了，可以开始创作！');
+}
