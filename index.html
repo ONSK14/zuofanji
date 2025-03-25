@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI故事生成器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- 侧边设置菜单 -->
+    <div id="sidebar" class="sidebar">
+        <button id="close-sidebar">×</button>
+        <div class="sidebar-menu">
+            <button id="start-creation">开始创作</button>
+            <button id="new-creation">新建</button>
+            <button id="view-creation">查看</button>
+            <button id="download-story">下载故事</button>
+            <button id="clear-story">清除当前故事内容</button>
+            <button id="api-settings">API设置</button>
+        </div>
+    </div>
+
+    <!-- 设置按钮 -->
+    <div id="settings-btn" class="settings-btn">
+        <span></span>
+        <span></span>
+        <span></span>
+    </div>
+
+    <!-- 开始创作模态框 -->
+    <div id="start-creation-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>开始创作</h2>
+            <div class="world-selection">
+                <label for="world-select">选择世界观:</label>
+                <select id="world-select"></select>
+            </div>
+            <div class="character-selection">
+                <div class="character-row">
+                    <label for="character1-select">选择角色1:</label>
+                    <select id="character1-select"></select>
+                </div>
+                <div class="character-row">
+                    <label for="character2-select">选择角色2 (可选):</label>
+                    <select id="character2-select"></select>
+                </div>
+                <div class="character-row">
+                    <label for="character3-select">选择角色3 (可选):</label>
+                    <select id="character3-select"></select>
+                </div>
+            </div>
+            <button id="confirm-creation">确定</button>
+        </div>
+    </div>
+
+    <!-- 新建模态框 -->
+    <div id="new-creation-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="new-creation-tabs">
+                <button class="tab active" data-tab="new-world">新建世界观</button>
+                <button class="tab" data-tab="new-character">新建角色</button>
+            </div>
+            
+            <div id="new-world" class="tab-content active">
+                <h2>新建世界观</h2>
+                <input type="text" id="world-name" placeholder="世界观名称">
+                <textarea id="world-description" placeholder="世界观描述"></textarea>
+                <button id="save-world">保存世界观</button>
+            </div>
+
+            <div id="new-character" class="tab-content">
+                <h2>新建角色</h2>
+                <input type="text" id="character-name" placeholder="角色姓名">
+                <input type="text" id="character-gender" placeholder="性别">
+                <textarea id="character-description" placeholder="角色简介"></textarea>
+                <button id="save-character">保存角色</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API设置模态框 -->
+    <div id="api-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>API设置</h2>
+            <div class="api-settings-form">
+                <input type="text" id="api-key" placeholder="API Key">
+                <input type="text" id="api-url" placeholder="API 地址">
+                <input type="text" id="api-model" placeholder="模型名称">
+                <button id="save-api-settings">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 查看模态框 -->
+    <div id="view-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <div class="view-tabs">
+                <button class="tab active" data-tab="view-worlds">世界观</button>
+                <button class="tab" data-tab="view-characters">角色</button>
+            </div>
+            
+            <div id="view-worlds" class="tab-content active">
+                <h2>已保存的世界观</h2>
+                <div id="saved-worlds-list"></div>
+            </div>
+
+            <div id="view-characters" class="tab-content">
+                <h2>已保存的角色</h2>
+                <div id="saved-characters-list"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 下载故事模态框 -->
+    <div id="download-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>下载故事</h2>
+            <div class="download-options">
+                <label>
+                    <input type="radio" name="download-format" value="with-outline" checked>
+                    包含章节大纲
+                </label>
+                <label>
+                    <input type="radio" name="download-format" value="without-outline">
+                    不包含章节大纲
+                </label>
+                <input type="text" id="story-filename" placeholder="文件名（可选）">
+                <button id="confirm-download">下载</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 故事生成主界面 -->
+    <div class="main-container">
+        <!-- 故事大纲按钮 -->
+        <div id="outline-btn" class="outline-btn">查看当前故事大纲</div>
+
+        <!-- 故事大纲模态框 -->
+        <div id="outline-modal" class="modal">
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <h2>当前故事大纲</h2>
+                <div id="story-outlines"></div>
+            </div>
+        </div>
+
+        <!-- 生成故事区域 -->
+        <div class="story-generation-container">
+            <div class="story-input-area">
+                <textarea id="story-prompt" placeholder="输入故事生成提示"></textarea>
+                <div class="generation-controls">
+                    <label for="word-count">生成字数:</label>
+                    <select id="word-count">
+                        <option value="1000">1000字</option>
+                        <option value="2000">2000字</option>
+                        <option value="4000">4000字</option>
+                        <option value="6000">6000字</option>
+                        <option value="8000">8000字</option>
+                    </select>
+                    <button id="generate-story">生成故事</button>
+                    <button id="regenerate-story" style="display:none;">重新生成</button>
+                </div>
+            </div>
+
+            <div id="story-output" class="story-output"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
