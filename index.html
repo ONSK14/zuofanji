@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI故事生成器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 侧边设置菜单 -->
+        <div id="sidebar" class="sidebar">
+            <button id="close-sidebar" class="btn-close">×</button>
+            <div class="sidebar-menu">
+                <button id="start-creation" class="btn-sidebar">开始创作</button>
+                <button id="new-project" class="btn-sidebar">新建</button>
+                <button id="view-projects" class="btn-sidebar">查看</button>
+                <button id="api-config" class="btn-sidebar">API配置</button>
+                <button id="download-story" class="btn-sidebar">下载故事</button>
+                <button id="clear-story" class="btn-sidebar">清除当前故事内容</button>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div id="main-container">
+            <!-- 顶部工具栏 -->
+            <div id="toolbar">
+                <button id="sidebar-toggle">☰</button>
+                <button id="view-outline">查看当前故事大纲</button>
+            </div>
+
+            <!-- API配置模态框 -->
+            <div id="api-config-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>API配置</h2>
+                        <button class="btn-close modal-close">&times;</button>
+                    </div>
+                    <form id="api-config-form">
+                        <div class="form-group">
+                            <label for="api-key">API Key:</label>
+                            <input type="text" id="api-key" name="api-key" placeholder="请输入API Key">
+                        </div>
+                        <div class="form-group">
+                            <label for="api-url">API 地址:</label>
+                            <input type="text" id="api-url" name="api-url" placeholder="请输入API地址">
+                        </div>
+                        <div class="form-group">
+                            <label for="model-name">模型名称:</label>
+                            <input type="text" id="model-name" name="model-name" placeholder="请输入模型名称">
+                        </div>
+                        <button type="submit" class="btn-submit">保存配置</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 新建模态框 -->
+            <div id="new-project-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="tab">
+                            <button class="tablinks active" data-tab="new-world">新建世界观</button>
+                            <button class="tablinks" data-tab="new-character">新建角色</button>
+                        </div>
+                        <button class="btn-close modal-close">&times;</button>
+                    </div>
+                    
+                    <div id="new-world" class="tabcontent active">
+                        <form id="new-world-form">
+                            <div class="form-group">
+                                <label for="world-name">世界观名称:</label>
+                                <input type="text" id="world-name" required placeholder="请输入世界观名称">
+                            </div>
+                            <div class="form-group">
+                                <label for="world-description">世界观描述:</label>
+                                <textarea id="world-description" rows="4" required placeholder="详细描述您的世界观"></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit">保存世界观</button>
+                        </form>
+                    </div>
+
+                    <div id="new-character" class="tabcontent">
+                        <form id="new-character-form">
+                            <div class="form-group">
+                                <label for="character-name">角色姓名:</label>
+                                <input type="text" id="character-name" required placeholder="请输入角色姓名">
+                            </div>
+                            <div class="form-group">
+                                <label for="character-gender">性别:</label>
+                                <input type="text" id="character-gender" placeholder="可选填写">
+                            </div>
+                            <div class="form-group">
+                                <label for="character-description">角色简介:</label>
+                                <textarea id="character-description" rows="4" required placeholder="描述角色背景和特点"></textarea>
+                            </div>
+                            <button type="submit" class="btn-submit">保存角色</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查看模态框 -->
+            <div id="view-projects-modal" class="modal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div class="tab">
+                            <button class="tablinks active" data-tab="view-worlds">查看世界观</button>
+                            <button class="tablinks" data-tab="view-characters">查看角色</button>
+                        </div>
+                        <button class="btn-close modal-close">&times;</button>
+                    </div>
+
+                    <div id="view-worlds" class="tabcontent active">
+                        <div id="worlds-list" class="project-list">
+                            <!-- 动态填充已保存的世界观 -->
+                        </div>
+                    </div>
+
+                    <div id="view-characters" class="tabcontent">
+                        <div id="characters-list" class="project-list">
+                            <!-- 动态填充已保存的角色 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要故事展示区 -->
+            <div id="story-container">
+                <div id="story-chapters">
+                    <!-- 动态生成章节 -->
+                </div>
+                <div id="story-controls">
+                    <button id="regenerate-chapter">重新生成本章</button>
+                    <button id="continue-story">继续故事</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
