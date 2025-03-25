@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI故事生成器</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- 侧边设置菜单 -->
+        <div id="sidebar" class="sidebar">
+            <button id="close-sidebar">×</button>
+            <div class="sidebar-menu">
+                <button id="start-creation">开始创作</button>
+                <button id="new-project">新建</button>
+                <button id="view-projects">查看</button>
+                <button id="download-story">下载故事</button>
+                <button id="clear-story">清除当前故事内容</button>
+            </div>
+        </div>
+
+        <!-- 主界面 -->
+        <div id="main-container">
+            <!-- 顶部工具栏 -->
+            <div id="toolbar">
+                <button id="sidebar-toggle">☰</button>
+                <button id="view-outline">查看当前故事大纲</button>
+            </div>
+
+            <!-- API配置模态框 -->
+            <div id="api-config-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>API配置</h2>
+                    <form id="api-config-form">
+                        <label for="api-key">API Key:</label>
+                        <input type="text" id="api-key" name="api-key">
+                        
+                        <label for="api-url">API 地址:</label>
+                        <input type="text" id="api-url" name="api-url">
+                        
+                        <label for="model-name">模型名称:</label>
+                        <input type="text" id="model-name" name="model-name">
+                        
+                        <button type="submit">保存配置</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 开始创作模态框 -->
+            <div id="start-creation-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>开始创作</h2>
+                    <form id="creation-form">
+                        <div>
+                            <label for="world-select">选择世界观:</label>
+                            <select id="world-select" required>
+                                <!-- 动态填充世界观选项 -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="character1-select">选择角色1:</label>
+                            <select id="character1-select" required>
+                                <!-- 动态填充角色选项 -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="character2-select">选择角色2 (可选):</label>
+                            <select id="character2-select">
+                                <!-- 动态填充角色选项 -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="character3-select">选择角色3 (可选):</label>
+                            <select id="character3-select">
+                                <!-- 动态填充角色选项 -->
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label for="story-length">生成文字数量 (1000-8000):</label>
+                            <input type="number" id="story-length" min="1000" max="8000" value="3000">
+                        </div>
+                        
+                        <div>
+                            <label for="story-prompt">情节发展提示:</label>
+                            <textarea id="story-prompt" rows="4"></textarea>
+                        </div>
+                        
+                        <button type="submit">开始创作</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 新建模态框 -->
+            <div id="new-project-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <div class="tab">
+                        <button class="tablinks" onclick="openTab(event, 'new-world')">新建世界观</button>
+                        <button class="tablinks" onclick="openTab(event, 'new-character')">新建角色</button>
+                    </div>
+
+                    <div id="new-world" class="tabcontent">
+                        <form id="new-world-form">
+                            <label for="world-name">世界观名称:</label>
+                            <input type="text" id="world-name" required>
+                            
+                            <label for="world-description">世界观描述:</label>
+                            <textarea id="world-description" rows="4" required></textarea>
+                            
+                            <button type="submit">保存世界观</button>
+                        </form>
+                    </div>
+
+                    <div id="new-character" class="tabcontent">
+                        <form id="new-character-form">
+                            <label for="character-name">角色姓名:</label>
+                            <input type="text" id="character-name" required>
+                            
+                            <label for="character-gender">性别:</label>
+                            <input type="text" id="character-gender">
+                            
+                            <label for="character-description">角色简介:</label>
+                            <textarea id="character-description" rows="4" required></textarea>
+                            
+                            <button type="submit">保存角色</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 查看模态框 -->
+            <div id="view-projects-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <div class="tab">
+                        <button class="tablinks" onclick="openTab(event, 'view-worlds')">查看世界观</button>
+                        <button class="tablinks" onclick="openTab(event, 'view-characters')">查看角色</button>
+                    </div>
+
+                    <div id="view-worlds" class="tabcontent">
+                        <div id="worlds-list">
+                            <!-- 动态填充已保存的世界观 -->
+                        </div>
+                    </div>
+
+                    <div id="view-characters" class="tabcontent">
+                        <div id="characters-list">
+                            <!-- 动态填充已保存的角色 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 下载故事模态框 -->
+            <div id="download-story-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>下载故事</h2>
+                    <form id="download-form">
+                        <div>
+                            <label for="story-name">故事文件名:</label>
+                            <input type="text" id="story-name" required>
+                        </div>
+                        
+                        <div>
+                            <label>下载格式:</label>
+                            <div>
+                                <input type="radio" id="with-outline" name="download-format" value="with-outline" checked>
+                                <label for="with-outline">包含大纲</label>
+                                
+                                <input type="radio" id="without-outline" name="download-format" value="without-outline">
+                                <label for="without-outline">不包含大纲</label>
+                            </div>
+                        </div>
+                        
+                        <button type="submit">下载</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 查看大纲模态框 -->
+            <div id="outline-modal" class="modal">
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>故事大纲</h2>
+                    <div id="outline-content">
+                        <!-- 动态填充大纲内容 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 主要故事展示区 -->
+            <div id="story-container">
+                <div id="story-chapters">
+                    <!-- 动态生成章节 -->
+                </div>
+                <div id="story-controls">
+                    <button id="regenerate-chapter">重新生成本章</button>
+                    <button id="continue-story">继续故事</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
