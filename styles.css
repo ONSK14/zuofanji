@@ -18,6 +18,36 @@ body {
   z-index: 1000;
 }
 
+/* popup 弹出框里的关闭按钮 */
+#popup-close {
+  float: right;
+  margin-bottom: 10px;
+  background-color: #eee;
+  border: none;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+/* 查看详情的展开样式 */
+.details {
+  display: none;
+  background-color: #fafafa;
+  padding: 10px;
+  margin-top: 5px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  white-space: pre-wrap;
+}
+
+.item-title {
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: #f0f0f0;
+  border-radius: 3px;
+}
+
 /* 侧边菜单样式 */
 #side-menu {
   position: fixed;
